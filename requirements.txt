@@ -1,0 +1,9 @@
+# Microsoft Graph API for Teams access
+msal>=1.24.0
+requests>=2.31.0
+
+# Data processing
+pandas>=2.0.0
+
+# Configuration and utilities
+python-dotenv>=1.0.0
