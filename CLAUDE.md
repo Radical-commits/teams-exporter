@@ -24,18 +24,20 @@ Requires `.env` file with:
 - Azure AD credentials (CLIENT_ID, TENANT_ID) - **No CLIENT_SECRET needed**
 - Teams identifiers (TEAM_ID, CHANNEL_ID)
 - Optional: MAX_MESSAGES (limits export, recommended for speed)
+- Optional: AUTH_TIMEOUT (authentication timeout in seconds, default: 300)
 
-First run prompts for interactive authentication via device code flow. Token is cached for subsequent runs.
+First run prompts for interactive authentication via device code flow. Token is cached for subsequent runs. Authentication will timeout if not completed within the configured period (default: 5 minutes).
 
 ## Architecture
 
 ### Core Functions
 
-**`get_access_token_interactive(client_id, tenant_id)`** - teams_exporter.py:20
+**`get_access_token_interactive(client_id, tenant_id, timeout=300)`** - teams_exporter.py:20
 - Authenticates using MSAL device code flow (interactive)
 - Tries token cache first for silent authentication
 - Prompts user to visit microsoft.com/devicelogin and enter code
-- Returns access token or None
+- Enforces configurable timeout (default: 300 seconds = 5 minutes)
+- Returns access token or None if failed/timeout
 
 **`export_messages(access_token, team_id, channel_id, output_dir, max_messages)`** - teams_exporter.py:68
 - Fetches messages from Graph API with pagination

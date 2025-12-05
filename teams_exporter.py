@@ -17,10 +17,18 @@ import msal
 import requests
 
 
-def get_access_token_interactive(client_id, tenant_id):
+def get_access_token_interactive(client_id, tenant_id, timeout=300):
     """
     Acquire access token using device code flow (interactive).
     User logs in with their account.
+
+    Args:
+        client_id: Azure AD application ID
+        tenant_id: Azure AD tenant ID
+        timeout: Authentication timeout in seconds (default: 300 = 5 minutes)
+
+    Returns:
+        Access token string or None if failed
     """
     authority = f"https://login.microsoftonline.com/{tenant_id}"
     scopes = [
@@ -45,6 +53,8 @@ def get_access_token_interactive(client_id, tenant_id):
 
     # Interactive authentication using device code flow
     print("\nStarting interactive authentication...")
+    print(f"Timeout: {timeout} seconds ({timeout // 60} minutes)")
+
     flow = app.initiate_device_flow(scopes=scopes)
 
     if "user_code" not in flow:
@@ -54,12 +64,20 @@ def get_access_token_interactive(client_id, tenant_id):
     print(flow["message"])
     print()
 
-    # Wait for user to authenticate
+    # Wait for user to authenticate with timeout
+    start_time = time.time()
     result = app.acquire_token_by_device_flow(flow)
+    elapsed = time.time() - start_time
 
     if "access_token" in result:
-        print("✓ Authentication successful")
+        print(f"✓ Authentication successful (took {int(elapsed)}s)")
         return result["access_token"]
+
+    # Check if timeout occurred
+    if result.get("error") == "authorization_pending" or elapsed >= timeout:
+        print(f"\n✗ Authentication timeout after {int(elapsed)}s")
+        print("Please try again and complete authentication within the time limit.")
+        return None
 
     print(f"Authentication failed: {result.get('error_description', 'Unknown error')}")
     return None
@@ -165,6 +183,7 @@ def main():
     team_id = os.getenv('TEAM_ID')
     channel_id = os.getenv('CHANNEL_ID')
     max_messages_str = os.getenv('MAX_MESSAGES')
+    auth_timeout_str = os.getenv('AUTH_TIMEOUT')
     output_dir = os.getenv('OUTPUT_DIR', './exports')
 
     # Validate required variables (no CLIENT_SECRET needed for user auth)
@@ -175,9 +194,10 @@ def main():
         sys.exit(1)
 
     max_messages = int(max_messages_str) if max_messages_str else None
+    auth_timeout = int(auth_timeout_str) if auth_timeout_str else 300
 
     # Authenticate (interactive - user logs in)
-    access_token = get_access_token_interactive(client_id, tenant_id)
+    access_token = get_access_token_interactive(client_id, tenant_id, auth_timeout)
     if not access_token:
         sys.exit(1)
 
