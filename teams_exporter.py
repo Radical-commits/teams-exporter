@@ -10,6 +10,7 @@ import os
 import sys
 import json
 import time
+import threading
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -64,20 +65,38 @@ def get_access_token_interactive(client_id, tenant_id, timeout=300):
     print(flow["message"])
     print()
 
-    # Wait for user to authenticate with timeout
+    # Use threading to enforce timeout on blocking MSAL call
+    result_container = {"result": None, "completed": False}
     start_time = time.time()
-    result = app.acquire_token_by_device_flow(flow)
+
+    def acquire_token_thread():
+        """Thread function to acquire token."""
+        try:
+            result_container["result"] = app.acquire_token_by_device_flow(flow)
+            result_container["completed"] = True
+        except Exception as e:
+            result_container["result"] = {"error": str(e)}
+            result_container["completed"] = True
+
+    # Start authentication in separate thread
+    auth_thread = threading.Thread(target=acquire_token_thread, daemon=True)
+    auth_thread.start()
+
+    # Wait for completion with timeout
+    auth_thread.join(timeout=timeout)
     elapsed = time.time() - start_time
+
+    # Check if thread completed
+    if not result_container["completed"]:
+        print(f"\n✗ Authentication timeout after {int(elapsed)}s")
+        print("Please try again and complete authentication within the time limit.")
+        return None
+
+    result = result_container["result"]
 
     if "access_token" in result:
         print(f"✓ Authentication successful (took {int(elapsed)}s)")
         return result["access_token"]
-
-    # Check if timeout occurred
-    if result.get("error") == "authorization_pending" or elapsed >= timeout:
-        print(f"\n✗ Authentication timeout after {int(elapsed)}s")
-        print("Please try again and complete authentication within the time limit.")
-        return None
 
     print(f"Authentication failed: {result.get('error_description', 'Unknown error')}")
     return None
