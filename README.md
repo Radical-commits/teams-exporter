@@ -32,7 +32,6 @@ CHANNEL_ID=your_channel_id
 Optional:
 ```bash
 MAX_MESSAGES=100        # Limit number of messages (recommended for speed)
-AUTH_TIMEOUT=300        # Authentication timeout in seconds (default: 300 = 5 minutes)
 OUTPUT_DIR=./exports    # Output directory
 ```
 
@@ -73,23 +72,19 @@ OUTPUT_DIR=./exports    # Output directory
 python teams_exporter.py
 ```
 
-**First run:** You'll be prompted to authenticate interactively:
+**First run:** A browser window will open automatically for authentication:
 ```
 Starting interactive authentication...
-Timeout: 300 seconds (5 minutes)
-To sign in, use a web browser to open the page https://microsoft.com/devicelogin
-and enter the code XXXXXXXX to authenticate.
+A browser window will open for sign-in.
 ```
 
-1. Open the URL in your browser
-2. Enter the code shown
-3. Sign in with your Microsoft account
-4. Authorize the application
-5. Complete within the timeout period (default: 5 minutes)
+1. Browser opens automatically to Microsoft login page
+2. Sign in with your Microsoft account
+3. Authorize the application
+4. Browser shows success message
+5. Return to terminal - export begins automatically
 
 **Subsequent runs:** The token is cached, so you won't need to authenticate again unless it expires.
-
-**Timeout:** If authentication takes too long, the script will exit with a timeout error. You can adjust the timeout using the `AUTH_TIMEOUT` environment variable.
 
 Output:
 ```

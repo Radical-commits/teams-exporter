@@ -10,7 +10,6 @@ import os
 import sys
 import json
 import time
-import threading
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -18,15 +17,14 @@ import msal
 import requests
 
 
-def get_access_token_interactive(client_id, tenant_id, timeout=300):
+def get_access_token_interactive(client_id, tenant_id):
     """
-    Acquire access token using device code flow (interactive).
-    User logs in with their account.
+    Acquire access token using interactive browser flow.
+    Browser opens automatically for user authentication.
 
     Args:
         client_id: Azure AD application ID
         tenant_id: Azure AD tenant ID
-        timeout: Authentication timeout in seconds (default: 300 = 5 minutes)
 
     Returns:
         Access token string or None if failed
@@ -51,50 +49,22 @@ def get_access_token_interactive(client_id, tenant_id, timeout=300):
             print("✓ Authenticated from cache")
             return result["access_token"]
 
-    # Interactive authentication using device code flow
+    # Interactive authentication using browser
     print("\nStarting interactive authentication...")
-    print(f"Timeout: {timeout} seconds ({timeout // 60} minutes)")
-
-    flow = app.initiate_device_flow(scopes=scopes)
-
-    if "user_code" not in flow:
-        print(f"Error initiating device flow: {flow.get('error_description', 'Unknown error')}")
-        return None
-
-    print(flow["message"])
+    print("A browser window will open for sign-in.")
     print()
 
-    # Use threading to enforce timeout on blocking MSAL call
-    result_container = {"result": None, "completed": False}
-    start_time = time.time()
-
-    def acquire_token_thread():
-        """Thread function to acquire token."""
-        try:
-            result_container["result"] = app.acquire_token_by_device_flow(flow)
-            result_container["completed"] = True
-        except Exception as e:
-            result_container["result"] = {"error": str(e)}
-            result_container["completed"] = True
-
-    # Start authentication in separate thread
-    auth_thread = threading.Thread(target=acquire_token_thread, daemon=True)
-    auth_thread.start()
-
-    # Wait for completion with timeout
-    auth_thread.join(timeout=timeout)
-    elapsed = time.time() - start_time
-
-    # Check if thread completed
-    if not result_container["completed"]:
-        print(f"\n✗ Authentication timeout after {int(elapsed)}s")
-        print("Please try again and complete authentication within the time limit.")
+    try:
+        result = app.acquire_token_interactive(
+            scopes=scopes,
+            prompt="select_account"
+        )
+    except Exception as e:
+        print(f"Authentication failed: {e}")
         return None
 
-    result = result_container["result"]
-
     if "access_token" in result:
-        print(f"✓ Authentication successful (took {int(elapsed)}s)")
+        print("✓ Authentication successful")
         return result["access_token"]
 
     print(f"Authentication failed: {result.get('error_description', 'Unknown error')}")
@@ -201,7 +171,6 @@ def main():
     team_id = os.getenv('TEAM_ID')
     channel_id = os.getenv('CHANNEL_ID')
     max_messages_str = os.getenv('MAX_MESSAGES')
-    auth_timeout_str = os.getenv('AUTH_TIMEOUT')
     output_dir = os.getenv('OUTPUT_DIR', './exports')
 
     # Validate required variables (no CLIENT_SECRET needed for user auth)
@@ -212,10 +181,9 @@ def main():
         sys.exit(1)
 
     max_messages = int(max_messages_str) if max_messages_str else None
-    auth_timeout = int(auth_timeout_str) if auth_timeout_str else 300
 
     # Authenticate (interactive - user logs in)
-    access_token = get_access_token_interactive(client_id, tenant_id, auth_timeout)
+    access_token = get_access_token_interactive(client_id, tenant_id)
     if not access_token:
         sys.exit(1)
 
