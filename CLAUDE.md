@@ -61,7 +61,6 @@ First run prompts for interactive authentication via device code flow. Token is 
 ### Required Permissions
 
 Delegated permissions (with admin consent):
-- `Channel.ReadBasic.All` (Delegated)
 - `ChannelMessage.Read.All` (Delegated)
 - `User.Read` (Delegated)
 

@@ -33,7 +33,6 @@ def get_access_token_interactive(client_id, tenant_id, timeout=300):
     """
     authority = f"https://login.microsoftonline.com/{tenant_id}"
     scopes = [
-        "Channel.ReadBasic.All",
         "ChannelMessage.Read.All",
         "User.Read"
     ]

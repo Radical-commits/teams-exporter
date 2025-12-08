@@ -53,7 +53,6 @@ OUTPUT_DIR=./exports    # Output directory
 1. Azure Portal → Azure Active Directory → App registrations
 2. Create new registration (or use existing)
 3. Add **Delegated permissions** (not Application):
-   - `Channel.ReadBasic.All`
    - `ChannelMessage.Read.All`
    - `User.Read`
 4. Grant admin consent for these permissions
